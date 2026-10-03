@@ -111,6 +111,26 @@ Preprocessing robustness, measured on 100–300 lines each:
 Saved in `results/`: the loss curve, example predictions (good *and* bad), an error analysis
 (most confused characters, errors by line length, confidence vs accuracy) and the metrics as JSON.
 
+### Training environment
+
+The model was trained entirely on an ordinary laptop, **without a GPU**:
+
+| Component | Details |
+|---|---|
+| Machine | HP EliteBook x360 1030 G3 (laptop) |
+| CPU | Intel Core i7-8650U, 4 cores / 8 threads, 1.9 GHz |
+| RAM | 16 GB |
+| GPU | none used (Intel UHD Graphics 620 is not supported by TensorFlow), CPU only |
+| OS | Windows 11 Pro |
+| Software | Python 3.13.14, TensorFlow 2.21.0, Keras 3.15.1 |
+| Training time per epoch | 16–21 min (average 18.6 min) for 6,476 training lines + validation |
+| Total training time | 20 epochs ≈ 6.2 hours (exact time added when training finishes) |
+| Data preparation | download ≈ 1–3 min, preprocessing ≈ 2 min (once) |
+| Test evaluation | a few minutes for 2,915 lines |
+| Peak RAM during training | about 4.3 GB |
+
+On a modern NVIDIA GPU, an epoch would take well under a minute.
+
 ## 4. Project structure
 
 ```text
@@ -218,9 +238,10 @@ python src/evaluate.py --limit 200            # quick evaluation on 200 test lin
 * **No data leakage.** The vocabulary is built from training labels only, and the test set is
   used once, at the end.
 
-**Hardware.** Everything was developed and trained on a laptop CPU (Intel i7-8650U, 16 GB
-RAM, no GPU). Training uses about 3–5 GB of RAM; lower `BATCH_SIZE` in `src/config.py` if
-needed. Keep the computer plugged in and stop it from sleeping while it trains.
+**Hardware.** Everything was trained on a laptop CPU (see
+[Training environment](#training-environment)). Training uses about 3–5 GB of RAM; lower
+`BATCH_SIZE` in `src/config.py` if needed. Keep the computer plugged in and stop it from
+sleeping while it trains.
 
 ## 8. Predictions and the web app
 
