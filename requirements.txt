@@ -1,0 +1,17 @@
+# Deep learning framework (Keras 3 is included with TensorFlow 2.21)
+tensorflow==2.21.0
+# Data handling
+numpy>=1.26,<3
+pandas>=2.2
+pyarrow>=16
+# Images and plots
+pillow>=10.4
+matplotlib>=3.9
+# Downloading with a progress bar
+requests>=2.32
+tqdm>=4.66
+# Jupyter notebook support
+notebook>=7.2
+ipykernel>=6.29
+# Small web server for the upload page (webapp/app.py)
+flask>=3.0
