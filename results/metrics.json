@@ -1,0 +1,7 @@
+{
+  "lines": 2915,
+  "CER": 0.102,
+  "WER": 0.3202,
+  "perfect_lines": 351,
+  "model": "handwriting_ocr.keras"
+}

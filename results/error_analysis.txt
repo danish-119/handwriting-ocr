@@ -1,0 +1,43 @@
+ERROR ANALYSIS (test set)
+========================================
+
+Types of character errors:
+  substitution :   8438  (66%)
+  deletion     :   3039  (24%)
+  insertion    :   1334  (10%)
+  substitution = wrong character, deletion = character missed,
+  insertion = extra character added
+
+Most common mistakes:
+    784  '␣' missed
+    268  'a' read as 'o'
+    254  'e' missed
+    233  'o' read as 'a'
+    230  extra '␣'
+    215  'r' missed
+    174  'u' read as 'n'
+    161  's' read as 'r'
+    151  's' missed
+    143  't' missed
+    132  'r' read as 'n'
+    132  extra 'r'
+    132  'd' read as 'l'
+    130  'l' read as 't'
+    122  'n' read as 'm'
+    122  'm' read as 'n'
+    120  'n' missed
+    118  'o' missed
+    116  'l' missed
+    109  'r' read as 's'
+
+CER by line length:
+  1-20 chars  : 0.146
+  21-40 chars : 0.097
+  41-60 chars : 0.098
+  61+ chars   : 0.154
+
+Confidence vs. accuracy (is the confidence score useful?):
+  confidence lowest 25%  : CER 0.209
+  confidence low-mid     : CER 0.100
+  confidence mid-high    : CER 0.066
+  confidence highest 25% : CER 0.034

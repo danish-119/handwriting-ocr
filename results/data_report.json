@@ -1,0 +1,27 @@
+{
+  "train": {
+    "rows_downloaded": 6482,
+    "missing_labels": 0,
+    "missing_images": 0,
+    "corrupted_images": 0,
+    "duplicate_images": 0,
+    "removed_because_sentence_or_image_in_val_or_test": 6,
+    "rows_used": 6476
+  },
+  "validation": {
+    "rows_downloaded": 976,
+    "missing_labels": 0,
+    "missing_images": 0,
+    "corrupted_images": 0,
+    "duplicate_images": 0,
+    "rows_used": 976
+  },
+  "test": {
+    "rows_downloaded": 2915,
+    "missing_labels": 0,
+    "missing_images": 0,
+    "corrupted_images": 0,
+    "duplicate_images": 0,
+    "rows_used": 2915
+  }
+}
