@@ -218,7 +218,7 @@ python src/evaluate.py --limit 200            # quick evaluation on 200 test lin
 * **No data leakage.** The vocabulary is built from training labels only, and the test set is
   used once, at the end.
 
-⏱️ **Hardware.** Everything was developed and trained on a laptop CPU (Intel i7-8650U, 16 GB
+**Hardware.** Everything was developed and trained on a laptop CPU (Intel i7-8650U, 16 GB
 RAM, no GPU). Training uses about 3–5 GB of RAM; lower `BATCH_SIZE` in `src/config.py` if
 needed. Keep the computer plugged in and stop it from sleeping while it trains.
 
