@@ -1,7 +1,8 @@
 # Handwriting OCR
 
 A from-scratch **handwritten text recognition (HTR) system** that reads lines of handwritten English
-from images and turns them into typed text. It is built with Python and TensorFlow/Keras, uses its
+from images and turns them into typed text. Handwriting is the hard case of OCR: every person
+writes differently, letters touch, and the same letter never looks the same twice. It is built with Python and TensorFlow/Keras, uses its
 own trained CNN + BiLSTM + CTC model, and includes a local web app.
 
 ```text
@@ -21,13 +22,11 @@ Output: It was a splendid interpretation of the
 
 ## Contents
 
-- [What is handwriting OCR?](#what-is-handwriting-ocr)
 - [How it works](#how-it-works)
 - [Dataset](#dataset)
 - [Results](#results)
 - [Project structure](#project-structure)
 - [Installation](#installation)
-- [Quick start](#quick-start)
 - [Training](#training)
 - [Usage](#usage): web app, command line, Python API
 - [Fine-tuning on your own handwriting](#fine-tuning-on-your-own-handwriting)
@@ -35,13 +34,6 @@ Output: It was a splendid interpretation of the
 - [Future work](#future-work)
 
 ---
-
-## What is handwriting OCR?
-
-**OCR** (Optical Character Recognition) turns a picture of text into real text that a computer
-can search, copy and edit. **Handwriting** OCR, also called **HTR** (Handwritten Text
-Recognition), is the hard version: every person writes differently, letters touch each other,
-and the same letter looks different every time.
 
 ## How it works
 
@@ -69,17 +61,14 @@ The model has about 1.1 million weights (4 MB), and lines of any width are suppo
 
 | Item | Details |
 |---|---|
-| **Name** | IAM Handwriting Database, line level |
-| **Source** | [`Teklia/IAM-line`](https://huggingface.co/datasets/Teklia/IAM-line) on Hugging Face, from the [original IAM database](https://fki.tic.heia-fr.ch/databases/iam-handwriting-database) |
+| **Source** | IAM Handwriting Database, line level: [`Teklia/IAM-line`](https://huggingface.co/datasets/Teklia/IAM-line) on Hugging Face, from the [original IAM database](https://fki.tic.heia-fr.ch/databases/iam-handwriting-database) |
 | **License** | Listed as MIT on Hugging Face. The original IAM database may be used for **non-commercial research**: fine for learning and portfolios, not for a commercial product |
 | **Samples** | 10,373 lines of English handwriting from about 650 writers, each with its exact transcription |
-| **Images** | grayscale scans, 128 px tall, one line of handwriting each |
 | **Splits** | the official, **writer-independent** split: 6,476 train, 976 validation, 2,915 test. The 6 training lines whose sentence also appears in validation or test were removed, so every test sentence is new |
 | **Quality checks** | no missing labels, no corrupted images, no duplicate images (see `results/data_report.json`) |
 
-Labelling style: IAM separates punctuation with spaces (`part . The`, `B B C's`), and the model
-learns to write it that way too. A few labels contain small mistakes; real datasets are never
-perfect. The dataset (about 265 MB) is downloaded automatically.
+IAM labels separate punctuation with spaces (`part . The`), so the model writes it that way too.
+The dataset (about 265 MB) is downloaded automatically.
 
 ## Results
 
@@ -129,37 +118,13 @@ On a modern NVIDIA GPU, an epoch would take well under a minute.
 
 ```text
 handwriting_ocr/
-├── data/
-│   ├── raw/              downloaded IAM dataset (.parquet)
-│   ├── train/ validation/ test/     preprocessed line images + labels.csv
-│   ├── my_handwriting/   (you create this) your own lines for fine-tuning
-│   └── finetune_demo/    demo data for fine-tuning (created automatically)
-├── models/
-│   ├── handwriting_ocr.keras              trained model (best epoch)
-│   ├── handwriting_ocr_finetuned.keras    fine-tuned on your handwriting (optional)
-│   ├── handwriting_ocr_last.keras         latest epoch, used to resume training
-│   └── vocab.json                         character ↔ number table (needed by the model)
-├── results/              plots, metrics, example predictions, error analysis, logs
-├── notebooks/
-│   └── handwriting_ocr.ipynb   the whole pipeline, step by step, for beginners
-├── src/
-│   ├── config.py         all settings and paths in one place
-│   ├── download_data.py  download IAM
-│   ├── prepare_data.py   check, clean, preprocess and split
-│   ├── preprocessing.py  image preprocessing shared by EVERY step (training = prediction)
-│   ├── vocab.py          characters ↔ numbers
-│   ├── dataset.py        tf.data pipelines: width bucketing, padding, augmentation
-│   ├── model.py          CNN + BiLSTM + CTC model, CTC loss, decoding
-│   ├── metrics.py        CER, WER, error alignment
-│   ├── train.py          training
-│   ├── evaluate.py       test-set evaluation + error analysis
-│   ├── finetune.py       fine-tune on your own handwriting
-│   └── predict.py        read handwriting from your own images (command line)
-├── webapp/
-│   ├── app.py            local web app: upload an image → see the text
-│   └── templates/index.html
-├── requirements.txt
-└── README.md
+├── src/             pipeline code: download, prepare, model, train, evaluate, predict, fine-tune
+├── webapp/          local Flask web app
+├── notebooks/       step-by-step tutorial notebook
+├── models/          trained model (handwriting_ocr.keras) + vocab.json
+├── results/         metrics, plots, example predictions, error analysis
+├── data/            downloaded and preprocessed data (created by the scripts, not in git)
+└── requirements.txt
 ```
 
 ## Installation
@@ -185,15 +150,6 @@ If PowerShell refuses to run the script, run this once:
 ```bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt   # about 1 GB, mostly TensorFlow
-```
-
-## Quick start
-
-With a trained model already in `models/`:
-
-```bash
-python webapp/app.py                      # web app → open http://127.0.0.1:5000
-python src/predict.py my_note.jpg         # or from the command line
 ```
 
 ## Training
@@ -287,13 +243,9 @@ vocab = Vocabulary.load("models/vocab.json")
 text, confidence = predict_texts(model, [to_model_input(load_image("line.png"))], vocab)[0]
 ```
 
-`custom_objects` is needed because the model uses a custom CTC loss. For prediction only,
-`compile=False` also works.
-
-**What is a `.keras` file?** A single zip file with the model's layers, its ~1 million learned
-weights and its training settings. **Why no retraining?** Training is the slow part: it finds
-good values for those weights. The file stores them, so loading it gives you the trained model
-back in a second.
+`custom_objects` is needed for the custom CTC loss (`compile=False` also works for prediction).
+A `.keras` file stores the layers and all learned weights, so loading it restores the trained
+model in seconds, with no retraining.
 
 ## Fine-tuning on your own handwriting
 
