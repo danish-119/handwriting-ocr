@@ -338,6 +338,7 @@ back in a second.
   letters reduce accuracy.
 * Handwriting that is very different from IAM's writers needs fine-tuning on samples of it.
 * IAM is for non-commercial research use, so the trained model inherits that restriction.
+  The code itself is MIT-licensed (see [LICENSE](LICENSE)).
 
 ## Future work
 
