@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handwriting Reader</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --text: #1d1d1b; --muted: #6b6a66;
+    --border: #e2e0da; --accent: #2f5bd3; --accent-soft: #e8eefc;
+    --good: #1f8a4c; --mid: #b7791f; --bad: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161614; --card: #21211e; --text: #ecebe6; --muted: #9a9890;
+      --border: #34332f; --accent: #7aa2ff; --accent-soft: #1f2a44;
+      --good: #4cc27f; --mid: #e0a64a; --bad: #ef6b5b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  #drop { border: 2px dashed var(--border); border-radius: 10px; padding: 32px 16px; text-align: center;
+          cursor: pointer; transition: border-color .15s, background .15s; }
+  #drop.over, #drop:hover { border-color: var(--accent); background: var(--accent-soft); }
+  #drop strong { color: var(--accent); }
+  #preview { display: none; max-width: 100%; max-height: 320px; margin: 16px auto 0; border-radius: 6px; }
+  .options { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-top: 16px; }
+  select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
+           background: var(--card); color: var(--text); }
+  button { font: inherit; font-weight: 600; padding: 10px 22px; border: 0; border-radius: 8px;
+           background: var(--accent); color: #fff; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  #status { color: var(--muted); margin-top: 12px; min-height: 1.5em; }
+  #status.error { color: var(--bad); }
+  #result { display: none; }
+  #fulltext { font-size: 1.25rem; white-space: pre-wrap; padding: 14px 16px; border-radius: 8px;
+              background: var(--accent-soft); margin: 8px 0 8px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pill { font-size: .85rem; padding: 2px 10px; border-radius: 999px; border: 1px solid currentColor; }
+  .high { color: var(--good); } .medium { color: var(--mid); } .low { color: var(--bad); }
+  .line { border-top: 1px solid var(--border); padding: 14px 0; }
+  .line img { max-width: 100%; display: block; border: 1px solid var(--border); border-radius: 4px; background: #fff; }
+  .line .t { margin-top: 6px; font-family: ui-monospace, Consolas, monospace; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  ul.tips { margin: 6px 0 0; padding-left: 20px; color: var(--muted); }
+  .secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 6px 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<main>
+  <h1>✍️ Handwriting Reader</h1>
+  <p class="sub">Upload a photo or scan of handwritten English text, and the model types it out.
+    Everything runs on your computer.</p>
+
+  <div class="card">
+    <div id="drop" tabindex="0" role="button" aria-label="Choose an image">
+      <div><strong>Click to choose an image</strong> or drag &amp; drop it here</div>
+      <div class="muted">JPG, PNG, … up to 15 MB</div>
+      <img id="preview" alt="Selected image">
+    </div>
+    <input id="file" type="file" accept="image/*" hidden>
+
+    <div class="options">
+      <label>Model
+        <select id="model">
+          {% for m in models %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+        </select>
+      </label>
+      <label><input type="checkbox" id="single"> The image is exactly one line</label>
+      <button id="go" disabled>Read handwriting</button>
+    </div>
+    <div id="status">{% if not models %}No trained model found yet. Train the model first.{% endif %}</div>
+  </div>
+
+  <div class="card" id="result">
+    <div class="row" style="justify-content: space-between">
+      <h2 style="margin:0; font-size:1.1rem">Recognized text</h2>
+      <div class="row"><span id="overall" class="pill"></span><button class="secondary" id="copy">Copy</button></div>
+    </div>
+    <div id="fulltext"></div>
+    <div class="muted" id="meta"></div>
+    <details style="margin-top:12px">
+      <summary>Line by line: what the model saw</summary>
+      <div id="lines"></div>
+    </details>
+  </div>
+
+  <div class="card">
+    <strong>Tips for good results</strong>
+    <ul class="tips">
+      <li>Dark pen on white, unlined paper, photographed in even light without shadows.</li>
+      <li>Crop the photo to just the handwriting. Leave clear space between lines.</li>
+      <li>The model learned from ~650 people's handwriting (the IAM dataset). Your own writing may give
+          more mistakes until you fine-tune the model on it (see README, section 9).</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+const drop = document.getElementById("drop"), fileInput = document.getElementById("file");
+const preview = document.getElementById("preview"), go = document.getElementById("go");
+const statusEl = document.getElementById("status");
+let chosen = null;
+
+function setStatus(msg, isError = false) { statusEl.textContent = msg; statusEl.className = isError ? "error" : ""; }
+function choose(file) {
+  if (!file || !file.type.startsWith("image/")) { setStatus("Please choose an image file.", true); return; }
+  chosen = file;
+  preview.src = URL.createObjectURL(file); preview.style.display = "block";
+  go.disabled = document.getElementById("model").options.length === 0;
+  setStatus(file.name);
+}
+drop.addEventListener("click", () => fileInput.click());
+drop.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") fileInput.click(); });
+fileInput.addEventListener("change", () => choose(fileInput.files[0]));
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => choose(e.dataTransfer.files[0]));
+
+function levelClass(label) { return label.startsWith("high") ? "high" : label.startsWith("medium") ? "medium" : "low"; }
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+go.addEventListener("click", async () => {
+  if (!chosen) return;
+  go.disabled = true; setStatus("Reading… (the first time takes a few seconds while the model loads)");
+  const form = new FormData();
+  form.append("image", chosen);
+  form.append("model", document.getElementById("model").value);
+  form.append("single_line", document.getElementById("single").checked);
+  try {
+    const res = await fetch("/predict", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Something went wrong.");
+    document.getElementById("fulltext").textContent = data.text || "(no text found)";
+    const overall = document.getElementById("overall");
+    overall.textContent = `confidence ${Math.round(data.confidence * 100)}%`;
+    overall.className = "pill " + levelClass(data.label);
+    document.getElementById("meta").textContent =
+      `${data.lines.length} line${data.lines.length > 1 ? "s" : ""} detected · model: ${data.model}`;
+    document.getElementById("lines").innerHTML = data.lines.map(l => `
+      <div class="line">
+        <img src="data:image/png;base64,${l.image}" alt="line image">
+        <div class="t">${escapeHtml(l.text) || "<em>(empty)</em>"}</div>
+        <span class="pill ${levelClass(l.label)}">confidence ${Math.round(l.confidence * 100)}%</span>
+      </div>`).join("");
+    document.getElementById("result").style.display = "block";
+    setStatus("Done.");
+  } catch (err) {
+    setStatus(err.message, true);
+  } finally {
+    go.disabled = false;
+  }
+});
+document.getElementById("copy").addEventListener("click", () =>
+  navigator.clipboard.writeText(document.getElementById("fulltext").textContent));
+</script>
+</body>
+</html>
