@@ -1,4 +1,4 @@
-# Handwriting OCR: handwritten text → typed text
+# Handwriting OCR
 
 A from-scratch **handwritten text recognition (HTR) system** that reads lines of handwritten English
 from images and turns them into typed text. It is built with Python and TensorFlow/Keras, uses its
@@ -21,19 +21,18 @@ Output: It was a splendid interpretation of the
 
 ## Contents
 
-1. [What is handwriting OCR?](#what-is-handwriting-ocr)
-2. [How it works](#how-it-works)
-3. [Dataset](#dataset)
-4. [Results](#results)
-5. [Project structure](#project-structure)
-6. [Installation](#installation)
-7. [Quick start](#quick-start)
-8. [Training pipeline](#training-pipeline)
-9. [Predictions and the web app](#predictions-and-the-web-app)
-10. [Fine-tuning on your own handwriting](#fine-tuning-on-your-own-handwriting)
-11. [Loading the model in your own code](#loading-the-model-in-your-own-code)
-12. [Limitations](#limitations)
-13. [Future work](#future-work)
+- [What is handwriting OCR?](#what-is-handwriting-ocr)
+- [How it works](#how-it-works)
+- [Dataset](#dataset)
+- [Results](#results)
+- [Project structure](#project-structure)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Training](#training)
+- [Usage](#usage): web app, command line, Python API
+- [Fine-tuning on your own handwriting](#fine-tuning-on-your-own-handwriting)
+- [Limitations](#limitations)
+- [Future work](#future-work)
 
 ---
 
@@ -84,6 +83,8 @@ perfect. The dataset (about 265 MB) is downloaded automatically.
 
 ## Results
 
+### Test set performance
+
 Results are measured on the IAM **test set**: 2,915 lines from writers the model never saw.
 
 | Model | Test CER | Test WER | Training |
@@ -93,7 +94,9 @@ Results are measured on the IAM **test set**: 2,915 lines from writers the model
 **CER** (character error rate) is the share of characters that are wrong, missing or extra.
 **WER** (word error rate) is the same, counted in whole words. 0 is perfect; lower is better.
 
-Preprocessing robustness, measured on 100–300 lines each:
+### Preprocessing robustness
+
+Effect of the preprocessing steps, measured on 100–300 lines each:
 
 | Test images | CER without preprocessing step | CER with it |
 |---|---|---|
@@ -193,7 +196,9 @@ python webapp/app.py                      # web app → open http://127.0.0.1:50
 python src/predict.py my_note.jpg         # or from the command line
 ```
 
-## Training pipeline
+## Training
+
+### Commands
 
 All commands run from the project folder. Every step skips work that's already done.
 
@@ -213,7 +218,7 @@ python src/train.py --limit 300 --epochs 2    # 2-minute smoke test
 python src/evaluate.py --limit 200            # quick evaluation on 200 test lines
 ```
 
-**Design choices worth knowing:**
+### Design choices
 
 * **No distortion, little padding.** Lines are resized to 64 px height keeping their aspect
   ratio, and lines of similar width are batched together, so letters are never squashed and
@@ -230,7 +235,7 @@ python src/evaluate.py --limit 200            # quick evaluation on 200 test lin
 If you run out of memory, lower `BATCH_SIZE` in `src/config.py`. On a laptop, keep it plugged
 in and stop it from sleeping while it trains.
 
-## Predictions and the web app
+## Usage
 
 ### Web app
 
@@ -267,6 +272,29 @@ parts of the text are usually wrong.
 **Tips for the best results:** dark pen on white, unlined paper; even light without shadows;
 one or a few clearly separated lines per image, cropped to the handwriting.
 
+### Python API
+
+```python
+import sys; sys.path.insert(0, "src")
+import keras
+from model import ctc_loss, predict_texts
+from preprocessing import load_image, to_model_input
+from vocab import Vocabulary
+
+model = keras.models.load_model("models/handwriting_ocr.keras",
+                                custom_objects={"ctc_loss": ctc_loss})
+vocab = Vocabulary.load("models/vocab.json")
+text, confidence = predict_texts(model, [to_model_input(load_image("line.png"))], vocab)[0]
+```
+
+`custom_objects` is needed because the model uses a custom CTC loss. For prediction only,
+`compile=False` also works.
+
+**What is a `.keras` file?** A single zip file with the model's layers, its ~1 million learned
+weights and its training settings. **Why no retraining?** Training is the slow part: it finds
+good values for those weights. The file stores them, so loading it gives you the trained model
+back in a second.
+
 ## Fine-tuning on your own handwriting
 
 Every person writes differently. Fine-tuning continues training the existing model on **your**
@@ -291,29 +319,6 @@ Existing trained model → load → add your handwriting → continue training (
 The script prints the CER **before and after** and mixes in original IAM lines so the model
 doesn't forget other handwriting. It saves `models/handwriting_ocr_finetuned.keras` and never
 overwrites the original model.
-
-## Loading the model in your own code
-
-```python
-import sys; sys.path.insert(0, "src")
-import keras
-from model import ctc_loss, predict_texts
-from preprocessing import load_image, to_model_input
-from vocab import Vocabulary
-
-model = keras.models.load_model("models/handwriting_ocr.keras",
-                                custom_objects={"ctc_loss": ctc_loss})
-vocab = Vocabulary.load("models/vocab.json")
-text, confidence = predict_texts(model, [to_model_input(load_image("line.png"))], vocab)[0]
-```
-
-`custom_objects` is needed because the model uses a custom CTC loss. For prediction only,
-`compile=False` also works.
-
-**What is a `.keras` file?** A single zip file with the model's layers, its ~1 million learned
-weights and its training settings. **Why no retraining?** Training is the slow part: it finds
-good values for those weights. The file stores them, so loading it gives you the trained model
-back in a second.
 
 ## Limitations
 
