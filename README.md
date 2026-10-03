@@ -17,38 +17,34 @@ Output: It was a splendid interpretation of the
 * **Runs offline.** The model is about 4 MB, needs no GPU, and images never leave your computer.
 * **Personalisable.** Fine-tune it on your own handwriting with a few dozen lines.
 
-<!-- RESULTS -->
-> **Results:** final test-set numbers are added here after training finishes
-> (see [Results](#results)).
-
 ---
 
 ## Contents
 
-1. [What is handwriting OCR?](#1-what-is-handwriting-ocr)
-2. [How it works](#2-how-it-works)
-3. [Dataset](#3-dataset)
+1. [What is handwriting OCR?](#what-is-handwriting-ocr)
+2. [How it works](#how-it-works)
+3. [Dataset](#dataset)
 4. [Results](#results)
-5. [Project structure](#4-project-structure)
-6. [Installation](#5-installation)
-7. [Quick start](#6-quick-start)
-8. [Training pipeline](#7-training-pipeline)
-9. [Predictions and the web app](#8-predictions-and-the-web-app)
-10. [Fine-tuning on your own handwriting](#9-fine-tuning-on-your-own-handwriting)
-11. [Loading the model in your own code](#10-loading-the-model-in-your-own-code)
+5. [Project structure](#project-structure)
+6. [Installation](#installation)
+7. [Quick start](#quick-start)
+8. [Training pipeline](#training-pipeline)
+9. [Predictions and the web app](#predictions-and-the-web-app)
+10. [Fine-tuning on your own handwriting](#fine-tuning-on-your-own-handwriting)
+11. [Loading the model in your own code](#loading-the-model-in-your-own-code)
 12. [Limitations](#limitations)
 13. [Future work](#future-work)
 
 ---
 
-## 1. What is handwriting OCR?
+## What is handwriting OCR?
 
 **OCR** (Optical Character Recognition) turns a picture of text into real text that a computer
 can search, copy and edit. **Handwriting** OCR, also called **HTR** (Handwritten Text
 Recognition), is the hard version: every person writes differently, letters touch each other,
 and the same letter looks different every time.
 
-## 2. How it works
+## How it works
 
 ```mermaid
 flowchart LR
@@ -70,7 +66,7 @@ flowchart LR
 
 The model has about 1.1 million weights (4 MB), and lines of any width are supported.
 
-## 3. Dataset
+## Dataset
 
 | Item | Details |
 |---|---|
@@ -97,9 +93,6 @@ Results are measured on the IAM **test set**: 2,915 lines from writers the model
 **CER** (character error rate) is the share of characters that are wrong, missing or extra.
 **WER** (word error rate) is the same, counted in whole words. 0 is perfect; lower is better.
 
-During training the model reached a **validation CER of 0.079** (about 92% of characters
-correct) after 14 epochs.
-
 Preprocessing robustness, measured on 100–300 lines each:
 
 | Test images | CER without preprocessing step | CER with it |
@@ -125,13 +118,11 @@ The model was trained entirely on an ordinary laptop, **without a GPU**:
 | Software | Python 3.13.14, TensorFlow 2.21.0, Keras 3.15.1 |
 | Training time per epoch | 16–21 min (average 18.6 min) for 6,476 training lines + validation |
 | Total training time | 20 epochs ≈ 6.2 hours (exact time added when training finishes) |
-| Data preparation | download ≈ 1–3 min, preprocessing ≈ 2 min (once) |
-| Test evaluation | a few minutes for 2,915 lines |
 | Peak RAM during training | about 4.3 GB |
 
 On a modern NVIDIA GPU, an epoch would take well under a minute.
 
-## 4. Project structure
+## Project structure
 
 ```text
 handwriting_ocr/
@@ -168,7 +159,7 @@ handwriting_ocr/
 └── README.md
 ```
 
-## 5. Installation
+## Installation
 
 You need **Python 3.10–3.13**; TensorFlow doesn't support Python 3.14 yet. Open a terminal
 **in the `handwriting_ocr` folder**.
@@ -193,7 +184,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt   # about 1 GB, mostly TensorFlow
 ```
 
-## 6. Quick start
+## Quick start
 
 With a trained model already in `models/`:
 
@@ -202,7 +193,7 @@ python webapp/app.py                      # web app → open http://127.0.0.1:50
 python src/predict.py my_note.jpg         # or from the command line
 ```
 
-## 7. Training pipeline
+## Training pipeline
 
 All commands run from the project folder. Every step skips work that's already done.
 
@@ -224,11 +215,9 @@ python src/evaluate.py --limit 200            # quick evaluation on 200 test lin
 
 **Design choices worth knowing:**
 
-* **No distortion.** Lines are resized to 64 px height, keeping their aspect ratio, so letters are
-  never squashed or stretched.
-* **Width bucketing.** Lines of similar width are batched together and padded only to the
-  widest line in their batch, so nothing is squashed and little computation is wasted on
-  padding.
+* **No distortion, little padding.** Lines are resized to 64 px height keeping their aspect
+  ratio, and lines of similar width are batched together, so letters are never squashed and
+  little computation is wasted on padding.
 * **Augmentation.** Training images get random slant, stretch, stroke thickness and ink
   intensity, following published IAM experiments.
 * **Callbacks.** After every epoch the model reads the validation set and prints
@@ -238,12 +227,10 @@ python src/evaluate.py --limit 200            # quick evaluation on 200 test lin
 * **No data leakage.** The vocabulary is built from training labels only, and the test set is
   used once, at the end.
 
-**Hardware.** Everything was trained on a laptop CPU (see
-[Training environment](#training-environment)). Training uses about 3–5 GB of RAM; lower
-`BATCH_SIZE` in `src/config.py` if needed. Keep the computer plugged in and stop it from
-sleeping while it trains.
+If you run out of memory, lower `BATCH_SIZE` in `src/config.py`. On a laptop, keep it plugged
+in and stop it from sleeping while it trains.
 
-## 8. Predictions and the web app
+## Predictions and the web app
 
 ### Web app
 
@@ -280,7 +267,7 @@ parts of the text are usually wrong.
 **Tips for the best results:** dark pen on white, unlined paper; even light without shadows;
 one or a few clearly separated lines per image, cropped to the handwriting.
 
-## 9. Fine-tuning on your own handwriting
+## Fine-tuning on your own handwriting
 
 Every person writes differently. Fine-tuning continues training the existing model on **your**
 handwriting with a small learning rate. About 50–200 lines are enough, because the model
@@ -305,7 +292,7 @@ The script prints the CER **before and after** and mixes in original IAM lines s
 doesn't forget other handwriting. It saves `models/handwriting_ocr_finetuned.keras` and never
 overwrites the original model.
 
-## 10. Loading the model in your own code
+## Loading the model in your own code
 
 ```python
 import sys; sys.path.insert(0, "src")
