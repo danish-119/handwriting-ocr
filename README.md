@@ -74,27 +74,75 @@ The dataset (about 265 MB) is downloaded automatically.
 
 ### Test set performance
 
-Results are measured on the IAM **test set**: 2,915 lines from writers the model never saw.
+Measured on the IAM **test set**: 2,915 lines from writers the model never saw, with sentences
+that never appear in training.
 
-| Model | Test CER | Test WER | Training |
-|---|---|---|---|
-| `handwriting_ocr.keras` | *pending* | *pending* | 20 epochs, laptop CPU |
+| Model | Test CER | Test WER | Perfect lines | Training |
+|---|---|---|---|---|
+| `handwriting_ocr.keras` | **0.102** | **0.320** | 351 / 2,915 | 20 epochs, 6.2 h, laptop CPU |
 
-**CER** (character error rate) is the share of characters that are wrong, missing or extra.
-**WER** (word error rate) is the same, counted in whole words. 0 is perfect; lower is better.
+That is about **90% of characters** and **68% of words** read correctly, with greedy decoding and
+no dictionary or language model. **CER** (character error rate) is the share of characters that
+are wrong, missing or extra; **WER** (word error rate) is the same counted in whole words. Lower
+is better.
+
+![Example predictions on the test set: good and bad](results/example_predictions.png)
+
+**Error analysis** (full report: `results/error_analysis.txt`):
+
+* Most errors are wrong characters (66%); missed (24%) and extra (10%) characters are less common.
+* The most frequent single error is a **missing space between words**, followed by similar-looking
+  letters: `a`↔`o`, `u`→`n`, `m`↔`n`, `d`→`l`, `r`↔`s`.
+* **Confidence is meaningful.** The 25% least confident lines have a CER of 0.209; the 25% most
+  confident have 0.034.
+* Very short and very long lines are harder (CER 0.146 and 0.154) than medium-length lines (0.097).
+
+### Training history
+
+![Training and validation loss, validation CER and WER per epoch](results/loss_curve.png)
+
+20 epochs in **6.23 hours** on a laptop CPU. The best validation result was at epoch 20 (CER
+0.071, WER 0.250). Training and validation loss stay close together (no overfitting), and the
+error rates were still improving slowly, so longer training would likely help a little.
+
+<details>
+<summary>Per-epoch results (all 20 epochs)</summary>
+
+| Epoch | Training loss | Validation loss | Validation CER | Validation WER | Learning rate | Time (min) |
+|---|---|---|---|---|---|---|
+| 1 | 137.63 | 139.09 | 0.885 | 1.000 | 1e-03 | 17.3 |
+| 2 | 80.59 | 56.01 | 0.389 | 0.794 | 1e-03 | 20.0 |
+| 3 | 44.66 | 29.87 | 0.194 | 0.554 | 1e-03 | 17.5 |
+| 4 | 33.26 | 23.60 | 0.155 | 0.478 | 1e-03 | 20.8 |
+| 5 | 27.56 | 19.93 | 0.129 | 0.415 | 1e-03 | 18.3 |
+| 6 | 24.31 | 17.12 | 0.111 | 0.363 | 1e-03 | 16.4 |
+| 7 | 21.51 | 17.67 | 0.114 | 0.369 | 1e-03 | 16.5 |
+| 8 | 19.77 | 15.71 | 0.103 | 0.343 | 1e-03 | 16.4 |
+| 9 | 18.36 | 15.08 | 0.099 | 0.330 | 1e-03 | 16.4 |
+| 10 | 17.13 | 16.75 | 0.110 | 0.346 | 1e-03 | 19.1 |
+| 11 | 16.10 | 13.44 | 0.086 | 0.296 | 1e-03 | 19.2 |
+| 12 | 15.45 | 13.58 | 0.084 | 0.288 | 1e-03 | 20.3 |
+| 13 | 14.44 | 14.19 | 0.089 | 0.302 | 1e-03 | 18.7 |
+| 14 | 13.82 | 12.50 | 0.079 | 0.278 | 1e-03 | 19.5 |
+| 15 | 13.15 | 12.77 | 0.079 | 0.279 | 1e-03 | 21.1 |
+| 16 | 12.56 | 12.07 | 0.073 | 0.260 | 1e-03 | 19.3 |
+| 17 | 12.13 | 11.90 | 0.073 | 0.260 | 1e-03 | 20.9 |
+| 18 | 11.58 | 11.81 | 0.072 | 0.253 | 1e-03 | 18.6 |
+| 19 | 11.02 | 11.42 | 0.071 | 0.251 | 1e-03 | 19.0 |
+| 20 **(best, saved)** | 10.78 | 11.54 | 0.071 | 0.250 | 1e-03 | 18.5 |
+
+</details>
 
 ### Preprocessing robustness
 
-Effect of the preprocessing steps, measured on 100–300 lines each:
+Effect of the preprocessing steps on difficult images, measured on 100–300 lines each (with an
+intermediate checkpoint of the model):
 
-| Test images | CER without preprocessing step | CER with it |
+| Test images | CER without the step | CER with it |
 |---|---|---|
 | Clean IAM scans (control) | 0.091 | 0.091 (unchanged) |
 | Simulated phone photos (gray, noisy, uneven light) | 0.347 | **0.144** |
 | Lines with a ruled line through them | 0.268 | **0.111** |
-
-Saved in `results/`: the loss curve, example predictions (good *and* bad), an error analysis
-(most confused characters, errors by line length, confidence vs accuracy) and the metrics as JSON.
 
 ### Training environment
 
@@ -108,8 +156,8 @@ The model was trained entirely on an ordinary laptop, **without a GPU**:
 | GPU | none used (Intel UHD Graphics 620 is not supported by TensorFlow), CPU only |
 | OS | Windows 11 Pro |
 | Software | Python 3.13.14, TensorFlow 2.21.0, Keras 3.15.1 |
-| Training time per epoch | 16–21 min (average 18.6 min) for 6,476 training lines + validation |
-| Total training time | 20 epochs ≈ 6.2 hours (exact time added when training finishes) |
+| Training time per epoch | 16.4–21.1 min (average 18.7 min) |
+| Total training time | **6.23 hours** for 20 epochs |
 | Peak RAM during training | about 4.3 GB |
 
 On a modern NVIDIA GPU, an epoch would take well under a minute.
