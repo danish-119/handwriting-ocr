@@ -349,51 +349,13 @@ back in a second.
 | **Language model / LLM post-correction** | A recognition model alone can never be 100% correct on handwriting (see below) | First an offline dictionary/n-gram beam search; then optionally an LLM given the top-N hypotheses, per-character confidence and the image |
 | **Better preprocessing** | More robust photos | Deskewing, adaptive (local) background normalisation for shadows, letter-height (x-height) normalisation |
 
-### Why an LLM? A recognition model alone can't be 100% correct
+### Why use an LLM to correct the recognized text?
 
-The model reads **pixels, character by character**, without understanding the meaning of the
-sentence. In messy handwriting some letters really do look identical (`a`/`o`, `n`/`u`, `l`/`1`,
-`O`/`0`, `rn`/`m`), and a single wrong letter makes the whole word wrong. That is why WER is
-always much higher than CER.
-
-Example: the image says *"I love my cat"*, but the `c` looks like an `o`.
-
-| Step | Output |
-|---|---|
-| Recognition model (pixels only) | "I love my **oat**" (80% `o`, 20% `c`) |
-| + language model (context) | "I love my **cat**": "my cat" is common English, "my oat" is not |
-
-A language model acts as a "second brain" that checks the model's guesses against real language.
-
-**What research says (it helps, but it is not magic):**
-
-* **Results vary a lot.** A 2025 benchmark of LLM post-correction on handwriting (IAM, RIMES,
-  historical sets) found only modest gains, at best about 8% fewer character errors. On noisy
-  printed OCR, other studies report 48–58% fewer errors. The benefit depends on the LLM, the
-  prompt, and how many errors there are to fix.
-* **LLMs can make text worse.** They sometimes "correct" a line into a fluent sentence that
-  was never written (hallucination), and such errors are hard to spot because they read well.
-* **Alternatives plus confidence help.** Giving the LLM several candidate readings and
-  confidence information, and correcting only uncertain lines, works better than handing it a
-  single guess.
-* **Vision LLMs reading the image directly are very strong.** GPT-4o-mini reached 1.7% CER on
-  IAM. But IAM is public and may have been in their training data, and they cost money per
-  image, need the internet, and are not private.
-
-**Planned design:**
-
-1. **Offline first:** CTC beam search with a word dictionary / n-gram language model (e.g. Word
-   Beam Search), the classic, proven way to lower WER on IAM. It is free, local, and can't
-   invent new sentences.
-2. **Optional LLM step:** give the LLM the model's **top 5 alternative readings**, mark
-   **low-confidence characters**, and optionally add the **image** (vision LLM), so corrections
-   stay grounded in what is on the paper.
-3. Strict instructions: fix recognition errors only; never rephrase, add or remove words.
-4. **Measure** CER/WER with and without each step on the test set, and keep a step only if it
-   really helps.
-
-Sources: [Benchmarking LLMs for Handwritten Text Recognition (2025)](https://arxiv.org/pdf/2503.15195) ·
-[OCR Post-Correction with LLMs: No Free Lunches (2025)](https://arxiv.org/pdf/2502.01205) ·
-[Confidence-Aware Document OCR Error Detection (2024)](https://arxiv.org/html/2409.04117v1) ·
-[CNN-BiLSTM on IAM with Word Beam Search + language model (2023)](https://arxiv.org/pdf/2307.00664) ·
-[LLM post-correction of British newspapers (Gale, 2024)](https://review.gale.com/2024/09/03/using-large-language-models-for-post-ocr-correction/)
+A recognition model reads pixels without understanding meaning, so it can never be 100% correct:
+some handwritten letters look identical (`a`/`o`, `n`/`u`, `rn`/`m`). It might read *"I love my
+cat"* as *"I love my **oat**"*, and a language model fixes that from context. Research shows the
+benefit is real but limited. On handwriting, LLM post-correction gave modest gains (about 8% fewer
+character errors at best), and LLMs can "correct" text into fluent sentences that were never
+written. The plan is therefore: first an offline dictionary/n-gram beam search, then optionally an
+LLM given the model's top alternatives, its confidence and the image, keeping each step only if
+test CER/WER really improve.
