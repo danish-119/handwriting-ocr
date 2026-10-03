@@ -1,0 +1,55 @@
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments (recreate with: python -m venv .venv && pip install -r requirements.txt)
+.venv/
+venv/
+env/
+
+# Secrets / local settings
+.env
+.env.*
+
+# ---------------------------------------------------------------------------
+# Jupyter
+# ---------------------------------------------------------------------------
+.ipynb_checkpoints/
+
+# ---------------------------------------------------------------------------
+# Data: downloaded / generated automatically by the scripts (hundreds of MB)
+#   python src/download_data.py  &&  python src/prepare_data.py
+# ---------------------------------------------------------------------------
+data/
+*.part
+
+# ---------------------------------------------------------------------------
+# Models
+#   handwriting_ocr.keras + vocab.json are kept (small, ~4 MB) so the demo works
+#   without training. Intermediate / personal models are not committed.
+# ---------------------------------------------------------------------------
+models/*_last.keras
+models/*_finetuned.keras
+models/*.vocab.json
+
+# ---------------------------------------------------------------------------
+# Results: keep metrics and plots, ignore raw logs
+# ---------------------------------------------------------------------------
+results/*.log
+results/example_input.png
+
+# ---------------------------------------------------------------------------
+# Editors / OS
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
